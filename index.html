@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Convertidor BIN → Excel</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: url(fondo.PNG) center center;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        color: rgb(255, 255, 255);
+    }
+    .card {
+        background: #853e88c5;
+        backdrop-filter: blur(10px);
+        padding: 30px;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 450px;
+        box-shadow: 0 0 20px #873072e1;
+    }
+    h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 24px;
+    }
+    input[type="file"] {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 10px;
+        border: none;
+    }
+    button {
+        width: 100%;
+        padding: 12px;
+        background: #be4ebb;
+        color: rgb(255, 255, 255);
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        margin-top: 20px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    button:hover {
+        background: #7112be;
+    }
+    .msg {
+        margin-top: 15px;
+        text-align: center;
+        font-size: 14px;
+    }
+</style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Convertidor BIN → Excel</h2>
+    <input type="file" id="binFile" accept=".bin" />
+    <button onclick="convertir()">Convertir a Excel</button>
+    <div class="msg" id="mensaje"></div>
+</div>
+
+<script>
+// *** Conversión BIN → Excel usando JavaScript ***
+// Esto funciona en navegador SIN Python usando XLSX.js
+
+async function convertir() {
+    const archivo = document.getElementById("binFile").files[0];
+    const msg = document.getElementById("mensaje");
+
+    if (!archivo) {
+        msg.textContent = "Selecciona un archivo .bin primero.";
+        return;
+    }
+
+    const buffer = await archivo.arrayBuffer();
+    const dataView = new DataView(buffer);
+    let valores = [];
+
+    for (let i = 0; i < buffer.byteLength; i += 2) {
+        valores.push(dataView.getUint16(i, true)); // Little-endian
+    }
+
+    // Crear Excel
+    msg.textContent = "Creando el archivo Excel...";
+    const wb = XLSX.utils.book_new();
+    const hoja = XLSX.utils.aoa_to_sheet(valores.map(v => [v]));
+    XLSX.utils.book_append_sheet(wb, hoja, "Datos");
+
+    const nombre = archivo.name.replace(/\.[^/.]+$/, "") + ".xlsx";
+    XLSX.writeFile(wb, nombre);
+
+    msg.textContent = "Archivo convertido correctamente.";
+}
+</script>
+
+<!-- Librería necesaria para generar Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+</body>
+</html>
