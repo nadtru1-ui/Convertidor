@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Convertidor BIN → Excel</title>
+<title>Convertidor BIN → CSV</title>
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -62,16 +62,13 @@
 <body>
 
 <div class="card">
-    <h2>Convertidor BIN → Excel</h2>
+    <h2>Convertidor BIN → CSV</h2>
     <input type="file" id="binFile" accept=".bin" />
-    <button onclick="convertir()">Convertir a Excel</button>
+    <button onclick="convertir()">Convertir a CSV</button>
     <div class="msg" id="mensaje"></div>
 </div>
 
 <script>
-// *** Conversión BIN → Excel usando JavaScript ***
-// Esto funciona en navegador SIN Python usando XLSX.js
-
 async function convertir() {
     const archivo = document.getElementById("binFile").files[0];
     const msg = document.getElementById("mensaje");
@@ -85,25 +82,27 @@ async function convertir() {
     const dataView = new DataView(buffer);
     let valores = [];
 
+    // Leer el BIN como enteros de 16 bits Little-endian
     for (let i = 0; i < buffer.byteLength; i += 2) {
-        valores.push(dataView.getUint16(i, true)); // Little-endian
+        valores.push(dataView.getUint16(i, true));
     }
 
-    // Crear Excel
-    msg.textContent = "Creando el archivo Excel...";
-    const wb = XLSX.utils.book_new();
-    const hoja = XLSX.utils.aoa_to_sheet(valores.map(v => [v]));
-    XLSX.utils.book_append_sheet(wb, hoja, "Datos");
+    // Crear texto CSV
+    msg.textContent = "Creando archivo CSV...";
+    const csvData = valores.join("\n");
 
-    const nombre = archivo.name.replace(/\.[^/.]+$/, "") + ".xlsx";
-    XLSX.writeFile(wb, nombre);
+    // Crear archivo CSV para descargar
+    const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+    const enlace = document.createElement("a");
+    const nombre = archivo.name.replace(/\.[^/.]+$/, "") + ".csv";
 
-    msg.textContent = "Archivo convertido correctamente.";
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = nombre;
+    enlace.click();
+
+    msg.textContent = "Archivo CSV generado correctamente.";
 }
 </script>
-
-<!-- Librería necesaria para generar Excel -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 </body>
 </html>
