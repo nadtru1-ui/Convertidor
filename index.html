@@ -89,10 +89,17 @@ async function convertir() {
 
     // Crear texto CSV
     msg.textContent = "Creando archivo CSV...";
-   const csvData = valores.map(v => `${v}`).join("\r\n");
+   // Agregar BOM UTF-8
+const bom = "\uFEFF";
+
+// Convertir valores a texto con CRLF
+const csvData = bom + valores.join("\r\n");
+
+// Crear archivo CSV compatible con Excel en español
+const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+
 
     // Crear archivo CSV para descargar
-    const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
     const enlace = document.createElement("a");
     const nombre = archivo.name.replace(/\.[^/.]+$/, "") + ".csv";
 
