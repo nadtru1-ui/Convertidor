@@ -1,2 +1,2 @@
 # Convertidor
-convierte archivos .bin en excel 
+convierte archivos .bin en csv
