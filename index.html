@@ -89,7 +89,7 @@ async function convertir() {
 
     // Crear texto CSV
     msg.textContent = "Creando archivo CSV...";
-    const csvData = valores.join("\n");
+   const csvData = valores.join("\r\n");
 
     // Crear archivo CSV para descargar
     const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
