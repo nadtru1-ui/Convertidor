@@ -76,9 +76,7 @@
 let valores = [];
 let chart;
 
-// ===========================
-// 1️⃣ Procesar archivo BIN
-// ===========================
+// 1️ Procesar archivo BIN
 async function procesarBIN() {
     const archivo = document.getElementById("binFile").files[0];
     const msg = document.getElementById("mensaje");
@@ -100,12 +98,49 @@ async function procesarBIN() {
 
     msg.textContent = `Archivo cargado ✔ (${valores.length} datos)`;
 
-    graficarECG(valores);
+    graficarECG(data) {
+    const ctx = document.getElementById("graficaECG").getContext("2d");
+
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: Array(300).fill(""), // ventana fija
+            datasets: [{
+                data: Array(300).fill(null),
+                borderColor: "#ff6ad5",
+                borderWidth: 2,
+                tension: 0,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            animation: false,
+            scales: {
+                x: { display: false },
+                y: { display: true, grid: { color: "#ffb6e6" } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    let i = 0;
+    const interval = setInterval(() => {
+        if (i >= data.length) {
+            clearInterval(interval);
+            return;
+        }
+
+        chart.data.datasets[0].data.push(data[i]);
+        chart.data.datasets[0].data.shift(); // efecto de movimiento
+
+        chart.update();
+        i++;
+    }, 2);
 }
 
-// ===========================
-// 2️⃣ Gráfica estilo ECG rosa
-// ===========================
+// 2️ Gráfica estilo ECG rosa
 function graficarECG(data) {
     const ctx = document.getElementById("graficaECG").getContext("2d");
 
@@ -146,9 +181,7 @@ function graficarECG(data) {
     }, 2);
 }
 
-// ===========================
-// 3️⃣ Descargar CSV (igual al original)
-// ===========================
+// 3️ Descargar CSV (igual al original)
 function descargarCSV() {
     if (valores.length === 0) {
         alert("Primero carga un archivo BIN.");
@@ -166,9 +199,7 @@ function descargarCSV() {
     enlace.click();
 }
 
-// ===========================
-// 4️⃣ Excel sin encabezados y con auto-hojas
-// ===========================
+// 4️ Excel sin encabezados y con auto-hojas
 function descargarExcel() {
     if (valores.length === 0) {
         alert("Primero carga un archivo BIN.");
