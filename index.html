@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ECG Real + Excel Auto-hojas</title>
+<title>Convertidor BIN → CSV/Excel + ECG</title>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,54 +14,58 @@
 <style>
     body {
         font-family: Arial, sans-serif;
-        background: #0a0f12;
-        color: white;
+        background: #160a20 url(fondo.png) center center;
+        margin: 0;
         padding: 20px;
-        text-align: center;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
     .card {
-        background: #111a1f;
-        padding: 20px;
-        border-radius: 15px;
-        max-width: 650px;
-        margin: auto;
-        box-shadow: 0 0 20px #00ffcc55;
+        background: #853e88c5;
+        backdrop-filter: blur(10px);
+        padding: 30px;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 600px;
+        box-shadow: 0 0 20px #873072e1;
     }
     canvas {
         margin-top: 20px;
         width: 100% !important;
         height: 300px !important;
-        background: #001b14;
-        border: 2px solid #0aff99;
+        background: #ffffff10;
+        border: 2px solid #ff86d8;
         border-radius: 15px;
     }
     button {
         width: 100%;
         padding: 12px;
-        background: #00ffaa;
-        color: black;
+        background: #be4ebb;
+        color: white;
         border: none;
         border-radius: 10px;
         font-size: 16px;
         margin-top: 15px;
         cursor: pointer;
-        font-weight: bold;
         transition: 0.3s;
     }
     button:hover {
-        background: #00cc88;
+        background: #7112be;
     }
 </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>ECG Real + Excel Automático</h2>
+    <h2 style="text-align:center">Convertidor BIN → CSV/Excel + ECG Rosa</h2>
 
     <input type="file" id="binFile" accept=".bin" />
 
-    <button onclick="procesarBIN()">Cargar y Mostrar Señal</button>
-    <button onclick="descargarExcel()">Descargar Excel Completo</button>
+    <button onclick="procesarBIN()">Cargar y Mostrar ECG</button>
+    <button onclick="descargarCSV()">Descargar CSV</button>
+    <button onclick="descargarExcel()">Descargar Excel</button>
 
     <canvas id="graficaECG"></canvas>
 
@@ -73,7 +77,7 @@ let valores = [];
 let chart;
 
 // ===========================
-// 1️ Procesar archivo BIN
+// 1️⃣ Procesar archivo BIN
 // ===========================
 async function procesarBIN() {
     const archivo = document.getElementById("binFile").files[0];
@@ -94,13 +98,13 @@ async function procesarBIN() {
         valores.push(dataView.getUint16(i, true));
     }
 
-    msg.textContent = `Archivo cargado ✔ Total datos: ${valores.length}`;
+    msg.textContent = `Archivo cargado ✔ (${valores.length} datos)`;
 
     graficarECG(valores);
 }
 
 // ===========================
-// 2️ Gráfica estilo ECG real
+// 2️⃣ Gráfica estilo ECG rosa
 // ===========================
 function graficarECG(data) {
     const ctx = document.getElementById("graficaECG").getContext("2d");
@@ -112,19 +116,18 @@ function graficarECG(data) {
         data: {
             labels: [],
             datasets: [{
-                label: "ECG",
                 data: [],
-                borderColor: "#00ff88",
+                borderColor: "#ff6ad5",
                 borderWidth: 2,
                 tension: 0,
-                pointRadius: 0,
+                pointRadius: 0
             }]
         },
         options: {
             animation: false,
             scales: {
                 x: { display: false },
-                y: { display: true, grid: { color: "#003322" } }
+                y: { display: true, grid: { color: "#ffb6e6" } }
             },
             plugins: { legend: { display: false } }
         }
@@ -144,7 +147,27 @@ function graficarECG(data) {
 }
 
 // ===========================
-// 3️ Excel con auto-hojas
+// 3️⃣ Descargar CSV (igual al original)
+// ===========================
+function descargarCSV() {
+    if (valores.length === 0) {
+        alert("Primero carga un archivo BIN.");
+        return;
+    }
+
+    const bom = "﻿";
+    const csv = bom + valores.join("
+");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+    const enlace = document.createElement("a");
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = "datos.csv";
+    enlace.click();
+}
+
+// ===========================
+// 4️⃣ Excel sin encabezados y con auto-hojas
 // ===========================
 function descargarExcel() {
     if (valores.length === 0) {
@@ -152,7 +175,7 @@ function descargarExcel() {
         return;
     }
 
-    const CHUNK = 50000; // datos por hoja
+    const CHUNK = 50000;
     const total = valores.length;
     const hojas = Math.ceil(total / CHUNK);
 
@@ -163,14 +186,12 @@ function descargarExcel() {
         const fin = Math.min(inicio + CHUNK, total);
         const bloque = valores.slice(inicio, fin);
 
-        const datos = [["Index", "Valor"]];
-        bloque.forEach((v, i) => datos.push([inicio + i, v]));
+        const datos = bloque.map(v => [v]);
 
         const ws = XLSX.utils.aoa_to_sheet(datos);
 
-        // Tonalidad rosa
-        for (let r = 2; r <= datos.length; r++) {
-            const cell = ws[`B${r}`];
+        for (let r = 1; r <= datos.length; r++) {
+            const cell = ws[`A${r}`];
             if (!cell.s) cell.s = {};
             cell.s.fill = { fgColor: { rgb: "FFB6C1" } };
         }
@@ -180,9 +201,10 @@ function descargarExcel() {
 
     XLSX.writeFile(wb, "ECG_Completo.xlsx");
 
-    document.getElementById("mensaje").textContent = "Excel creado con todas las hojas ✔";
+    document.getElementById("mensaje").textContent = "Excel rosa generado ✔";
 }
 </script>
 
 </body>
 </html>
+
