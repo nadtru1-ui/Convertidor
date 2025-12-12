@@ -293,8 +293,8 @@
 
       // archivo con nombre basado en archivo .bin
       const f = fileInput.files[0];
-      let name = 'ECG_Completo.xlsx';
-      if (f && f.name) name = f.name.replace(/\.[^/.]+$/, '') + '_ECG.xlsx';
+      let name = '_Completo.xlsx';
+      if (f && f.name) name = f.name.replace(/\.[^/.]+$/, '') + '_.xlsx';
 
       XLSX.writeFile(wb, name);
       status.textContent = `Excel descargado — ${total} filas en ${sheets} hoja(s)`;
