@@ -3,73 +3,79 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Convertidor BIN → CSV</title>
+<title>ECG Real + Excel Auto-hojas</title>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- SheetJS -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <style>
     body {
         font-family: Arial, sans-serif;
-        background: #160a20 url(fondo.png) center center;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        color: rgb(255, 255, 255);
+        background: #0a0f12;
+        color: white;
+        padding: 20px;
+        text-align: center;
     }
     .card {
-        background: #853e88c5;
-        backdrop-filter: blur(10px);
-        padding: 30px;
-        border-radius: 20px;
-        width: 90%;
-        max-width: 450px;
-        box-shadow: 0 0 20px #873072e1;
+        background: #111a1f;
+        padding: 20px;
+        border-radius: 15px;
+        max-width: 650px;
+        margin: auto;
+        box-shadow: 0 0 20px #00ffcc55;
     }
-    h2 {
-        text-align: center;
-        margin-bottom: 20px;
-        font-size: 24px;
-    }
-    input[type="file"] {
-        width: 100%;
-        padding: 10px;
-        margin-top: 10px;
-        border-radius: 10px;
-        border: none;
+    canvas {
+        margin-top: 20px;
+        width: 100% !important;
+        height: 300px !important;
+        background: #001b14;
+        border: 2px solid #0aff99;
+        border-radius: 15px;
     }
     button {
         width: 100%;
         padding: 12px;
-        background: #be4ebb;
-        color: rgb(255, 255, 255);
+        background: #00ffaa;
+        color: black;
         border: none;
         border-radius: 10px;
         font-size: 16px;
-        margin-top: 20px;
+        margin-top: 15px;
         cursor: pointer;
+        font-weight: bold;
         transition: 0.3s;
     }
     button:hover {
-        background: #7112be;
-    }
-    .msg {
-        margin-top: 15px;
-        text-align: center;
-        font-size: 14px;
+        background: #00cc88;
     }
 </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>Convertidor BIN → CSV</h2>
+    <h2>ECG Real + Excel Automático</h2>
+
     <input type="file" id="binFile" accept=".bin" />
-    <button onclick="convertir()">Convertir a CSV</button>
-    <div class="msg" id="mensaje"></div>
+
+    <button onclick="procesarBIN()">Cargar y Mostrar Señal</button>
+    <button onclick="descargarExcel()">Descargar Excel Completo</button>
+
+    <canvas id="graficaECG"></canvas>
+
+    <div id="mensaje" style="margin-top:15px;"></div>
 </div>
 
 <script>
-async function convertir() {
+let valores = [];
+let chart;
+
+// ===========================
+// 1️ Procesar archivo BIN
+// ===========================
+async function procesarBIN() {
     const archivo = document.getElementById("binFile").files[0];
     const msg = document.getElementById("mensaje");
 
@@ -78,36 +84,103 @@ async function convertir() {
         return;
     }
 
+    msg.textContent = "Leyendo archivo...";
+
     const buffer = await archivo.arrayBuffer();
     const dataView = new DataView(buffer);
-    let valores = [];
+    valores = [];
 
-    // Leer el BIN como enteros de 16 bits Little-endian
     for (let i = 0; i < buffer.byteLength; i += 2) {
         valores.push(dataView.getUint16(i, true));
     }
 
-    // Crear texto CSV
-    msg.textContent = "Creando archivo CSV...";
-   // Agregar BOM UTF-8
-const bom = "\uFEFF";
+    msg.textContent = `Archivo cargado ✔ Total datos: ${valores.length}`;
 
-// Convertir valores a texto con CRLF
-const csvData = bom + valores.join("\r\n");
+    graficarECG(valores);
+}
 
-// Crear archivo CSV compatible con Excel en español
-const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+// ===========================
+// 2️ Gráfica estilo ECG real
+// ===========================
+function graficarECG(data) {
+    const ctx = document.getElementById("graficaECG").getContext("2d");
 
+    if (chart) chart.destroy();
 
-    // Crear archivo CSV para descargar
-    const enlace = document.createElement("a");
-    const nombre = archivo.name.replace(/\.[^/.]+$/, "") + ".csv";
+    chart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [{
+                label: "ECG",
+                data: [],
+                borderColor: "#00ff88",
+                borderWidth: 2,
+                tension: 0,
+                pointRadius: 0,
+            }]
+        },
+        options: {
+            animation: false,
+            scales: {
+                x: { display: false },
+                y: { display: true, grid: { color: "#003322" } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
 
-    enlace.href = URL.createObjectURL(blob);
-    enlace.download = nombre;
-    enlace.click();
+    let i = 0;
+    const interval = setInterval(() => {
+        if (i >= data.length) {
+            clearInterval(interval);
+            return;
+        }
+        chart.data.labels.push(i);
+        chart.data.datasets[0].data.push(data[i]);
+        chart.update();
+        i++;
+    }, 2);
+}
 
-    msg.textContent = "Archivo CSV generado correctamente.";
+// ===========================
+// 3️ Excel con auto-hojas
+// ===========================
+function descargarExcel() {
+    if (valores.length === 0) {
+        alert("Primero carga un archivo BIN.");
+        return;
+    }
+
+    const CHUNK = 50000; // datos por hoja
+    const total = valores.length;
+    const hojas = Math.ceil(total / CHUNK);
+
+    const wb = XLSX.utils.book_new();
+
+    for (let h = 0; h < hojas; h++) {
+        const inicio = h * CHUNK;
+        const fin = Math.min(inicio + CHUNK, total);
+        const bloque = valores.slice(inicio, fin);
+
+        const datos = [["Index", "Valor"]];
+        bloque.forEach((v, i) => datos.push([inicio + i, v]));
+
+        const ws = XLSX.utils.aoa_to_sheet(datos);
+
+        // Tonalidad rosa
+        for (let r = 2; r <= datos.length; r++) {
+            const cell = ws[`B${r}`];
+            if (!cell.s) cell.s = {};
+            cell.s.fill = { fgColor: { rgb: "FFB6C1" } };
+        }
+
+        XLSX.utils.book_append_sheet(wb, ws, `Hoja_${h + 1}`);
+    }
+
+    XLSX.writeFile(wb, "ECG_Completo.xlsx");
+
+    document.getElementById("mensaje").textContent = "Excel creado con todas las hojas ✔";
 }
 </script>
 
