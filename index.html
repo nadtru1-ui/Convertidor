@@ -183,7 +183,7 @@
     const dv = new DataView(ab);
     const out = [];
     for (let i = 0; i + 1 < dv.byteLength; i += 2) {
-      // usar getUint16 (ajusta si tus datos son signed -> cambiar a getInt16)
+      // usar getUint16 (ajusta si tus datos son signed - cambiar a getInt16)
       out.push(dv.getUint16(i, true));
     }
     return out;
@@ -237,7 +237,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
 
-    // nombre basado en archivo original si existe
+    // nombre basado en archivo original
     const f = fileInput.files[0];
     let name = 'datos.csv';
     if (f && f.name) {
@@ -251,9 +251,6 @@
     setTimeout(() => URL.revokeObjectURL(url), 2000);
     status.textContent = `CSV descargado — ${valores.length} filas`;
   }
-
-  //  Descarga Excel sin encabezados, con hojas múltiples 
-  
         // crear matriz donde cada subarray es una fila con un solo valor — sin encabezado
         const sheetData = [];
         for (let i = start; i < end; i++) sheetData.push([valores[i]]);
