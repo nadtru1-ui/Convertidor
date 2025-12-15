@@ -95,7 +95,6 @@
       <input id="binFile" type="file" accept=".bin" />
       <button id="btnLoad">Cargar</button>
       <button id="btnCSV">Descargar CSV</button>
-      <button id="btnXLS">Descargar Excel</button>
     </div>
 
     <div class="right">
@@ -119,7 +118,7 @@
 
 <script>
 (() => {
-  // ====== Variables globales ======
+  // Variables globales 
   let valores = [];           // array de enteros leídos del BIN
   let chart = null;
   let windowSize = 600;       // cantidad de puntos visibles
@@ -129,7 +128,7 @@
   let bufferWindow = [];      // ventana actual (Array length == windowSize)
   const MAX_ROWS_PER_SHEET = 1048575; // Excel safe per-sheet rows (one less to be safe)
 
-  // ====== DOM ======
+  //  DOM 
   const fileInput = document.getElementById('binFile');
   const btnLoad = document.getElementById('btnLoad');
   const btnCSV = document.getElementById('btnCSV');
@@ -139,7 +138,7 @@
   const inputWindow = document.getElementById('windowSize');
   const inputSpeed = document.getElementById('speedMs');
 
-  // ====== Inicializar Chart.js con apariencia rosa ECG ======
+  // Inicializar Chart.js con apariencia rosa ECG 
   function initChart(ws) {
     // Si existía, destruirla
     if (chart) { chart.destroy(); chart = null; }
@@ -178,7 +177,7 @@
     });
   }
 
-  // ====== Leer BIN como Uint16 little-endian ======
+  // Leer BIN como Uint16 little-endian 
   async function leerBinComoUint16(file) {
     const ab = await file.arrayBuffer();
     const dv = new DataView(ab);
@@ -190,7 +189,7 @@
     return out;
   }
 
-  // ====== Iniciar animación de scroll ======
+  // Iniciar animación de scroll 
   function comenzarScroll() {
     // limpiar intervalo previo
     if (playInterval) { clearInterval(playInterval); playInterval = null; }
@@ -226,7 +225,7 @@
     }, speedMs);
   }
 
-  // ====== Descarga CSV idéntico (sin encabezados) ======
+  //Descarga CSV idéntico (sin encabezados) 
   function descargarCSV() {
     if (!valores || valores.length === 0) { alert('Primero carga un archivo .bin'); return; }
 
@@ -253,58 +252,14 @@
     status.textContent = `CSV descargado — ${valores.length} filas`;
   }
 
-  // ====== Descarga Excel sin encabezados, con hojas múltiples ======
-  function descargarExcel() {
-    if (!valores || valores.length === 0) { alert('Primero carga un archivo .bin'); return; }
-
-    try {
-      const wb = XLSX.utils.book_new();
-      const total = valores.length;
-      const rowsPerSheet = Math.min(MAX_ROWS_PER_SHEET, 1000000); // seguridad
-      const sheets = Math.ceil(total / rowsPerSheet);
-
-      for (let s = 0; s < sheets; s++) {
-        const start = s * rowsPerSheet;
-        const end = Math.min(start + rowsPerSheet, total);
+  //  Descarga Excel sin encabezados, con hojas múltiples 
+  
         // crear matriz donde cada subarray es una fila con un solo valor — sin encabezado
         const sheetData = [];
         for (let i = start; i < end; i++) sheetData.push([valores[i]]);
         const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-        // Intento de aplicar relleno rosa (no siempre soportado por todas las builds)
-        // Mantener contenido limpio sin índices ni cabeceras (solo valores)
-        try {
-          const range = XLSX.utils.decode_range(ws['!ref']);
-          for (let R = range.s.r; R <= range.e.r; ++R) {
-            const cellAddr = XLSX.utils.encode_cell({c:0, r:R});
-            const cell = ws[cellAddr];
-            if (cell) {
-              if (!cell.s) cell.s = {};
-              cell.s.fill = { fgColor: { rgb: "FFB6C1" } }; // rosa pastel
-            }
-          }
-        } catch(e) {
-          // si falla el estilado simplemente ignorar; los valores estarán correctamente escritos
-          console.warn('No fue posible aplicar estilo en todas las celdas:', e);
-        }
-
-        XLSX.utils.book_append_sheet(wb, ws, `Hoja_${s+1}`);
-      }
-
-      // archivo con nombre basado en archivo .bin
-      const f = fileInput.files[0];
-      let name = '_Completo.xlsx';
-      if (f && f.name) name = f.name.replace(/\.[^/.]+$/, '') + '_.xlsx';
-
-      XLSX.writeFile(wb, name);
-      status.textContent = `Excel descargado — ${total} filas en ${sheets} hoja(s)`;
-    } catch (err) {
-      console.error(err);
-      alert('Error generando Excel. Mira la consola para más detalles.');
-    }
-  }
-
-  // ====== Eventos UI ======
+  //  Eventos UI 
   btnLoad.addEventListener('click', async () => {
     const file = fileInput.files[0];
     if (!file) { alert('Selecciona un archivo .bin primero'); return; }
