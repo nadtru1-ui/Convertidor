@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>BIN → CSV </title>
+<title>BIN → CSV / Excel</title>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -88,13 +88,14 @@
 <body>
 
 <div class="card">
-  <h1>Convertidor BIN → CSV </h1>
+  <h1>Convertidor BIN → CSV / Excel </h1>
 
   <div class="controls">
     <div class="left">
       <input id="binFile" type="file" accept=".bin" />
       <button id="btnLoad">Cargar</button>
       <button id="btnCSV">Descargar CSV</button>
+    <button id="btnXLS">Descargar Excel</button>
     </div>
 
     <div class="right">
@@ -183,7 +184,7 @@
     const dv = new DataView(ab);
     const out = [];
     for (let i = 0; i + 1 < dv.byteLength; i += 2) {
-      // usar getUint16 (ajusta si tus datos son signed - cambiar a getInt16)
+      // usar getUint16 (ajusta si tus datos son signed -> cambiar a getInt16)
       out.push(dv.getUint16(i, true));
     }
     return out;
@@ -237,7 +238,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
 
-    // nombre basado en archivo original
+    // nombre basado en archivo original si existe
     const f = fileInput.files[0];
     let name = 'datos.csv';
     if (f && f.name) {
@@ -251,10 +252,57 @@
     setTimeout(() => URL.revokeObjectURL(url), 2000);
     status.textContent = `CSV descargado — ${valores.length} filas`;
   }
+
+  //  Descarga Excel sin encabezados, con hojas múltiples 
+  function descargarExcel() {
+    if (!valores || valores.length === 0) { alert('Primero carga un archivo .bin'); return; }
+
+    try {
+      const wb = XLSX.utils.book_new();
+      const total = valores.length;
+      const rowsPerSheet = Math.min(MAX_ROWS_PER_SHEET, 1000000); // seguridad
+      const sheets = Math.ceil(total / rowsPerSheet);
+
+      for (let s = 0; s < sheets; s++) {
+        const start = s * rowsPerSheet;
+        const end = Math.min(start + rowsPerSheet, total);
         // crear matriz donde cada subarray es una fila con un solo valor — sin encabezado
         const sheetData = [];
         for (let i = start; i < end; i++) sheetData.push([valores[i]]);
         const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+        // Intento de aplicar relleno rosa (no siempre soportado por todas las builds)
+        // Mantener contenido limpio sin índices ni cabeceras (solo valores)
+        try {
+          const range = XLSX.utils.decode_range(ws['!ref']);
+          for (let R = range.s.r; R <= range.e.r; ++R) {
+            const cellAddr = XLSX.utils.encode_cell({c:0, r:R});
+            const cell = ws[cellAddr];
+            if (cell) {
+              if (!cell.s) cell.s = {};
+              cell.s.fill = { fgColor: { rgb: "FFB6C1" } }; // rosa pastel
+            }
+          }
+        } catch(e) {
+          // si falla el estilado simplemente ignorar; los valores estarán correctamente escritos
+          console.warn('No fue posible aplicar estilo en todas las celdas:', e);
+        }
+
+        XLSX.utils.book_append_sheet(wb, ws, `Hoja_${s+1}`);
+      }
+
+      // archivo con nombre basado en archivo .bin
+      const f = fileInput.files[0];
+      let name = '_Completo.xlsx';
+      if (f && f.name) name = f.name.replace(/\.[^/.]+$/, '') + '_.xlsx';
+
+      XLSX.writeFile(wb, name);
+      status.textContent = `Excel descargado — ${total} filas en ${sheets} hoja(s)`;
+    } catch (err) {
+      console.error(err);
+      alert('Error generando Excel. Mira la consola para más detalles.');
+    }
+  }
 
   //  Eventos UI 
   btnLoad.addEventListener('click', async () => {
